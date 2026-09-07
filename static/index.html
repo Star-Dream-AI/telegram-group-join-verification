@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>人机安全验证</title>
+  <link rel="icon" href="favicon.ico" type="image/x-icon">
+  <!-- Telegram Web App SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Cloudflare Turnstile API -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-color: #fdf2f7;
+      --card-bg: rgba(255, 255, 255, 0.88);
+      --card-border: rgba(244, 114, 182, 0.35);
+      --primary-gradient: linear-gradient(135deg, #f472b6 0%, #ec4899 100%);
+      --success-color: #059669;
+      --error-color: #e11d48;
+      --text-main: #4c1d24;
+      --text-muted: #881337;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+
+    body {
+      background: #fdf2f7;
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(244, 114, 182, 0.28) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(251, 113, 133, 0.25) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(253, 164, 175, 0.15) 0px, transparent 60%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      color: var(--text-main);
+    }
+
+    .container {
+      width: 100%;
+      max-width: 420px;
+      background: var(--card-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--card-border);
+      border-radius: 28px;
+      padding: 36px 24px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(244, 114, 182, 0.2), 0 4px 15px rgba(236, 72, 153, 0.08);
+      animation: fadeIn 0.5s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .logo-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 20px;
+      background: linear-gradient(135deg, #fff0f5 0%, #fbcfe8 100%);
+      border-radius: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 25px rgba(244, 114, 182, 0.35);
+      border: 2px solid rgba(255, 255, 255, 0.9);
+      overflow: hidden;
+      transition: transform 0.3s ease;
+    }
+
+    .logo-icon:hover {
+      transform: scale(1.05) rotate(3deg);
+    }
+
+    .logo-icon img {
+      width: 58px;
+      height: 58px;
+      object-fit: contain;
+      border-radius: 12px;
+    }
+
+    h1 {
+      font-size: 23px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+      color: #701a2d;
+    }
+
+    p.subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 28px;
+      line-height: 1.5;
+      opacity: 0.9;
+    }
+
+    .user-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(244, 114, 182, 0.12);
+      border: 1px solid rgba(244, 114, 182, 0.25);
+      padding: 6px 14px;
+      border-radius: 20px;
+      margin-bottom: 24px;
+      font-size: 13px;
+      color: #881337;
+      font-weight: 500;
+    }
+
+    .turnstile-wrapper {
+      min-height: 70px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    /* Status cards */
+    .status-card {
+      display: none;
+      padding: 18px 20px;
+      border-radius: 18px;
+      margin-top: 10px;
+      animation: popIn 0.3s ease-out;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.92); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .status-card.loading {
+      background: rgba(244, 114, 182, 0.12);
+      border: 1px solid rgba(244, 114, 182, 0.3);
+      color: #9f1239;
+    }
+
+    .status-card.success {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: var(--success-color);
+    }
+
+    .status-card.error {
+      background: rgba(225, 29, 72, 0.08);
+      border: 1px solid rgba(225, 29, 72, 0.25);
+      color: var(--error-color);
+    }
+
+    .spinner {
+      width: 28px;
+      height: 28px;
+      border: 3px solid rgba(244, 114, 182, 0.3);
+      border-top-color: #ec4899;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .icon-success {
+      width: 44px;
+      height: 44px;
+      background: var(--success-color);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 12px;
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+    }
+
+    .icon-success svg {
+      width: 24px;
+      height: 24px;
+      stroke: white;
+      stroke-width: 3;
+    }
+
+    .btn-retry {
+      margin-top: 14px;
+      background: var(--primary-gradient);
+      color: white;
+      border: none;
+      padding: 10px 22px;
+      border-radius: 14px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 8px 20px rgba(236, 72, 153, 0.35);
+      transition: all 0.2s ease;
+    }
+
+    .btn-retry:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 25px rgba(236, 72, 153, 0.45);
+    }
+
+    .btn-retry:active {
+      transform: scale(0.96);
+    }
+
+    footer {
+      margin-top: 26px;
+      font-size: 12px;
+      color: #9f1239;
+      opacity: 0.75;
+      line-height: 1.4;
+    }
+
+    footer a {
+      color: #be123c;
+      font-weight: 600;
+      text-decoration: none;
+      border-bottom: 1px dotted #fb7185;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <!-- Favicon / Logo Image -->
+    <div class="logo-icon">
+      <img src="favicon.ico" alt="Favicon Logo" id="appLogo">
+    </div>
+
+    <h1>人机验证</h1>
+    <p class="subtitle">完成旋转门校验以解除发言限制</p>
+
+    <div class="user-badge" id="userBadge" style="display: none;">
+      <span id="userName">Telegram 用户</span>
+    </div>
+
+    <!-- Turnstile Widget Container -->
+    <div class="turnstile-wrapper">
+      <div id="cf-turnstile-widget"></div>
+    </div>
+
+    <!-- Loading Status -->
+    <div id="statusLoading" class="status-card loading">
+      <div class="spinner"></div>
+      <div>正在提交验证结果，请稍候...</div>
+    </div>
+
+    <!-- Success Status -->
+    <div id="statusSuccess" class="status-card success">
+      <div class="icon-success">
+        <svg viewBox="0 0 24 24" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">验证成功！</div>
+      <div style="font-size: 13px; opacity: 0.9;">已成功解除禁言，正在返回 Telegram...</div>
+    </div>
+
+    <!-- Error Status -->
+    <div id="statusError" class="status-card error">
+      <div id="errorMessage" style="font-weight: 500; font-size: 14px;">验证失败，请重试</div>
+      <button class="btn-retry" onclick="resetVerification()">重新验证</button>
+    </div>
+
+    <footer>
+      <a href="https://nya.xmyun.org" target="_blank">nya.xmyun.org</a> will help Star Dream communities verify you are a human
+    </footer>
+  </div>
+
+  <script>
+    let tg = window.Telegram?.WebApp;
+    let siteKey = "";
+
+    document.addEventListener("DOMContentLoaded", async () => {
+      if (tg) {
+        tg.ready();
+        tg.expand();
+
+        // Show username if available
+        if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
+          const user = tg.initDataUnsafe.user;
+          const userBadge = document.getElementById("userBadge");
+          const userName = document.getElementById("userName");
+          userName.innerText = `${user.first_name || ''} ${user.last_name || ''}`.trim() || `@${user.username}`;
+          userBadge.style.display = "inline-flex";
+        }
+      }
+
+      // Fetch SiteKey from backend
+      try {
+        const res = await fetch("/api/config");
+        const data = await res.json();
+        siteKey = data.site_key;
+
+        if (!siteKey) {
+          showError("服务端未配置 Cloudflare SiteKey");
+          return;
+        }
+
+        renderTurnstile();
+      } catch (err) {
+        console.error("Fetch config failed", err);
+        showError("获取配置失败，请检查网络");
+      }
+    });
+
+    function renderTurnstile() {
+      if (window.turnstile) {
+        turnstile.render('#cf-turnstile-widget', {
+          sitekey: siteKey,
+          theme: 'light',
+          callback: onTurnstileSuccess,
+          'error-callback': () => showError("Turnstile 验证异常，请重试"),
+          'expired-callback': () => showError("验证已过期，请重新验证")
+        });
+      } else {
+        setTimeout(renderTurnstile, 200);
+      }
+    }
+
+    async function onTurnstileSuccess(token) {
+      showLoading();
+
+      const initData = tg ? tg.initData : "";
+
+      try {
+        const response = await fetch("/api/verify", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            init_data: initData,
+            turnstile_response: token
+          })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          showSuccess();
+          if (tg && tg.HapticFeedback) {
+            tg.HapticFeedback.notificationOccurred('success');
+          }
+          setTimeout(() => {
+            if (tg) tg.close();
+          }, 2000);
+        } else {
+          showError(result.message || "验证失败，请重试");
+          if (tg && tg.HapticFeedback) {
+            tg.HapticFeedback.notificationOccurred('error');
+          }
+        }
+      } catch (err) {
+        console.error("Verification API error:", err);
+        showError("网络请求错误，请稍后重试");
+      }
+    }
+
+    function showLoading() {
+      hideAllCards();
+      document.getElementById("statusLoading").style.display = "block";
+    }
+
+    function showSuccess() {
+      hideAllCards();
+      document.getElementById("statusSuccess").style.display = "block";
+      document.querySelector(".turnstile-wrapper").style.display = "none";
+    }
+
+    function showError(msg) {
+      hideAllCards();
+      const errCard = document.getElementById("statusError");
+      document.getElementById("errorMessage").innerText = msg;
+      errCard.style.display = "block";
+    }
+
+    function hideAllCards() {
+      document.getElementById("statusLoading").style.display = "none";
+      document.getElementById("statusSuccess").style.display = "none";
+      document.getElementById("statusError").style.display = "none";
+    }
+
+    function resetVerification() {
+      hideAllCards();
+      if (window.turnstile) {
+        turnstile.reset('#cf-turnstile-widget');
+      }
+    }
+  </script>
+</body>
+</html>
