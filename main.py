@@ -127,7 +127,7 @@ async def process_new_user(user: types.User, chat: types.Chat):
         logger.info(f"Restricted user {user.id} in chat {chat.id}")
     except Exception as e:
         if "supergroups" in str(e).lower():
-            logger.warning(f"⚠️ 无法在群组 {chat.title} ({chat.id}) 中禁言用户：Telegram 规定禁言功能仅支持【超级群组 (Supergroup)】。请在 Telegram 中将群组转为超级群组（如：设置历史消息对新成员可见）。")
+            logger.warning(f"⚠️ 无法在群组 {chat.title} ({chat.id}) 中禁言用户：Telegram 规定禁言功能仅支持【超级群组 (Supergroup)】。请在 Telegram 中将群组转为超级群组（如：设置历史消息对新成员可见/设置公开群后再转私密）。")
         else:
             logger.error(f"Failed to restrict user {user.id} in chat {chat.id}: {e}")
 
@@ -147,17 +147,17 @@ async def process_new_user(user: types.User, chat: types.Chat):
 
     # Keyboard for Group Message (contains t.me link button, as web_app buttons are forbidden in groups by Telegram)
     group_keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="👉 点击前往私聊完成验证", url=f"https://t.me/{bot_username}?start=verify")]
+        [InlineKeyboardButton(text="点击前往私聊完成验证", url=f"https://t.me/{bot_username}?start=verify")]
     ])
 
     # 4. Try sending private message to user, fallback to group message with group_keyboard
     welcome_text_pm = (
-        f"👋 欢迎 **{user.first_name}** 加入 **{chat.title}**！\n"
-        f"请点击下方按钮完成 Cloudflare 旋转门验证以解除发言限制："
+        f"欢迎 **{user.first_name}** 加入 **{chat.title}**！\n"
+        f"请点击下方按钮完成验证以解除发言限制："
     )
     welcome_text_group = (
         f"欢迎 [{user.first_name}](tg://user?id={user.id})！\n"
-        f"加入社区需要先进行人机验证。请点击下方按钮前往私聊完成验证以解除发言限制："
+        f"加入群组需要先进行人机验证。请点击下方按钮前往私聊完成验证以解除发言限制："
     )
 
     # Delete previous verification message in this group to keep group clean
@@ -168,7 +168,7 @@ async def process_new_user(user: types.User, chat: types.Chat):
         # Send friendly notice in group pointing to PM
         sent_msg = await bot.send_message(
             chat_id=chat.id,
-            text=f"欢迎 [{user.first_name}](tg://user?id={user.id})！请检查私聊完成人机验证解封发言。",
+            text=f"欢迎 [{user.first_name}](tg://user?id={user.id})！请检查私聊完成验证解封发言。",
             parse_mode="Markdown"
         )
         last_group_verification_msg[chat.id] = sent_msg.message_id
@@ -197,7 +197,7 @@ if dp:
             [InlineKeyboardButton(text="打开人机安全验证页", web_app=WebAppInfo(url=verify_url))]
         ])
         await message.answer(
-            "👋 您好！ 加入星梦社区需要先进行验证以确保你是人类 \n点击下方按钮可直接进行安全验证。",
+            "您好！ 加入社区需要先进行验证以确保你是人类 \n点击下方按钮可直接进行验证。",
             reply_markup=keyboard
         )
 
