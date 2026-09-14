@@ -50,7 +50,7 @@ verify/
 ### 2. 安装与配置
 
 #### (1) 安装依赖
-在 `verify` 目录下运行：
+在目录下运行：
 ```bash
 pip install -r requirements.txt
 ```
