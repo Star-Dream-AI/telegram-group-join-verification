@@ -3,6 +3,10 @@ a telegram bot to help you verify group member based of Cloudflare Turnstile
 
 这是一个完整的 Telegram Bot + Telegram Mini App 自动化验证系统。当新成员加入 Telegram 群组时，系统会自动对其进行发言限制（禁言），并向其发送私聊消息提示点击打开 Mini App 页面完成 **Cloudflare Turnstile 旋转门人机验证**。验证成功后，系统将自动解除群组发言限制。
 
+<a href="https://tgbotmau.quoi.dev/?bot=stardreamverify_bot" target="_blank">
+		<img alt="@stardreamverify_bot" title="@stardreamverify_bot MAU" src="https://tgbotmau.quoi.dev/api/bot/stardreamverify_bot/mau/badge?style=flat">
+	</a>
+
 ---
 
 ## 功能特性
