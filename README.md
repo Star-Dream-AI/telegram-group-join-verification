@@ -7,6 +7,10 @@ a telegram bot to help you verify group member based of Cloudflare Turnstile
 		<img alt="@stardreamverify_bot" title="@stardreamverify_bot MAU" src="https://tgbotmau.quoi.dev/api/bot/stardreamverify_bot/mau/badge?style=flat">
 	</a>
 
+<b>中文详细教程参见：</b> <a href="https://www.xmlans.com/web/telegram-group-join-verification-bot.html" target="_blank">
+		星梦博客 入群验证Bot
+	</a>
+
 ---
 
 ## 功能特性
