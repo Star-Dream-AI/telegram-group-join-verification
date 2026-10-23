@@ -9,6 +9,10 @@ a telegram bot to help you verify group member based of Cloudflare Turnstile
 
 <b>中文详细教程参见：</b> <a href="https://www.xmlans.com/web/telegram-group-join-verification-bot.html" target="_blank">
 		星梦博客 入群验证Bot
+	</a> <br>
+
+<b>English install guide：</b> <a href="https://en.xmlans.com/web/telegram-group-join-verification-turnstile-bot/" target="_blank">
+		Star Dream Blog
 	</a>
 
 ---
