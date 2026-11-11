@@ -268,7 +268,7 @@
         </svg>
       </div>
       <div style="font-weight: 600; font-size: 16px; margin-bottom: 4px;">验证成功！</div>
-      <div style="font-size: 13px; opacity: 0.9;">已成功解除禁言，正在返回 Telegram...</div>
+      <div id="successMessage" style="font-size: 13px; opacity: 0.9;">已成功解除禁言，正在返回 Telegram...</div>
     </div>
 
     <!-- Error Status -->
@@ -296,7 +296,8 @@
           const user = tg.initDataUnsafe.user;
           const userBadge = document.getElementById("userBadge");
           const userName = document.getElementById("userName");
-          userName.innerText = `${user.first_name || ''} ${user.last_name || ''}`.trim() || `@${user.username}`;
+          userName.innerText = `${user.first_name || ''} ${user.last_name || ''}`.trim()
+            || (user.username ? `@${user.username}` : "Telegram 用户");
           userBadge.style.display = "inline-flex";
         }
       }
@@ -350,10 +351,15 @@
           })
         });
 
-        const result = await response.json();
+        let result;
+        try {
+          result = await response.json();
+        } catch (e) {
+          result = { success: false, message: `服务器错误 (${response.status})，请稍后重试` };
+        }
 
         if (result.success) {
-          showSuccess();
+          showSuccess(result.message);
           if (tg && tg.HapticFeedback) {
             tg.HapticFeedback.notificationOccurred('success');
           }
@@ -377,8 +383,11 @@
       document.getElementById("statusLoading").style.display = "block";
     }
 
-    function showSuccess() {
+    function showSuccess(msg) {
       hideAllCards();
+      if (msg) {
+        document.getElementById("successMessage").innerText = msg + " 正在返回 Telegram...";
+      }
       document.getElementById("statusSuccess").style.display = "block";
       document.querySelector(".turnstile-wrapper").style.display = "none";
     }

@@ -36,6 +36,7 @@ verify/
 ├── static/
 │   └── index.html      # Telegram Mini App 前端 UI (Turnstile SDK + Telegram SDK)
 ├── .env.example        # 环境变量配置模板
+├── data/pending.json   # 运行时生成：待验证记录（已加入 .gitignore）
 ├── requirements.txt    # Python 依赖包
 └── README.md           # 项目使用与部署说明文档
 ```
@@ -80,6 +81,10 @@ CF_SECRET_KEY=0x4AAAAAAABxxxxxxxxxxxxxxxxxxxx
 WEBAPP_URL=https://your-tunnel-domain.com
 HOST=0.0.0.0
 PORT=4567
+# 可选：待验证记录的持久化文件（相对路径以项目目录为基准），重启后不会丢失
+DATA_FILE=data/pending.json
+# 可选：Telegram initData 最长有效期（秒），防止截获的 initData 被长期重放
+INIT_DATA_MAX_AGE=86400
 ```
 
 > ⚠️ **注意**：Telegram Mini App **必须** 使用 **HTTPS** 协议。
@@ -101,8 +106,16 @@ python main.py
 
 或者使用 uvicorn 启动：
 ```bash
-uvicorn main:app --host 0.0.0.0 --port 4567 --reload
+uvicorn main:app --host 0.0.0.0 --port 4567
 ```
+
+> ⚠️ 只能运行 **单个进程**：不要加 `--workers N`，否则多个进程会同时轮询 Telegram（`Conflict` 报错）且各自维护待验证记录。
+
+---
+
+## 从旧版升级
+
+旧版把待验证记录存在内存里，新版改为持久化到 `DATA_FILE`。升级后请管理员在群组的「受限用户」列表中，**手动解封被旧版 Bot 禁言、尚未完成验证的用户**。否则这些用户退群再进时，会被当作"管理员已设置的限制"处理，验证通过后仍保持禁言。
 
 ---
 
@@ -120,7 +133,8 @@ uvicorn main:app --host 0.0.0.0 --port 4567 --reload
 ## 安全性说明
 
 后端 `/api/verify` 校验流程：
-1. **initData 签名**：通过 HMAC-SHA256(`WebAppData`, bot_token) 算法验证前端传来的 `initData`，确保 `user_id` 来自真实 Telegram 用户且未被篡改。
+1. **initData 签名**：通过 HMAC-SHA256(`WebAppData`, bot_token) 算法验证前端传来的 `initData`，确保 `user_id` 来自真实 Telegram 用户且未被篡改；同时校验 `auth_date`，超过 `INIT_DATA_MAX_AGE` 的 initData 一律拒绝。
 2. **Turnstile 二次校验**：将 Turnstile Token 发送至 `https://challenges.cloudflare.com/turnstile/v0/siteverify` 进行二次校验，防范伪造验证请求。
+3. **不绕过管理员禁言**：用户入群前若已被管理员限制（退群再进时 Telegram 会保留限制），验证通过后恢复的是原有限制，而不是完全解封。
 
 <img src="https://files.astrbot.app/watashiwa-koseino-desukara.gif" width="100"/>
