@@ -92,6 +92,24 @@ class PendingStore:
             self._save()
             return old
 
+    async def replace_chat_notice(self, user_id: int, chat_id: int, message_id: int) -> list:
+        """Make message_id the only tracked notice in this chat (keeps the group clean).
+
+        Returns every previously tracked notice in the chat (any user's) so the caller can delete them.
+        """
+        async with self.lock:
+            old = []
+            for chats in self.data.values():
+                entry = chats.get(str(chat_id))
+                if entry and entry.get("notice"):
+                    old.append(entry["notice"])
+                    entry["notice"] = None
+            entry = self.data.get(str(user_id), {}).get(str(chat_id))
+            if entry is not None:
+                entry["notice"] = message_id
+            self._save()
+            return old
+
     async def chats(self, user_id: int) -> Dict[int, dict]:
         async with self.lock:
             return {int(c): dict(e) for c, e in self.data.get(str(user_id), {}).items()}
@@ -276,8 +294,9 @@ async def process_new_user(user: types.User, chat: types.Chat):
 
     try:
         sent_msg = await bot.send_message(chat_id=chat.id, text=group_text, reply_markup=group_keyboard, parse_mode=ParseMode.HTML)
-        old_notice = await store.swap_notice(user.id, chat.id, sent_msg.message_id)
-        await delete_message_quietly(chat.id, old_notice)
+        # Keep the group clean: only the latest verification notice stays visible
+        for old_notice in await store.replace_chat_notice(user.id, chat.id, sent_msg.message_id):
+            await delete_message_quietly(chat.id, old_notice)
     except Exception as e:
         logger.error(f"Failed to send verification notice in chat {chat.id}: {e}")
 
